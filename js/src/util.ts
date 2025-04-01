@@ -13,6 +13,7 @@ export function runCatchFinally<R>(
     const ret = f();
     if (ret instanceof Promise) {
       runSyncCleanup = false;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
       return (ret as any).catch(catchF).finally(finallyF) as R;
     } else {
       return ret;
@@ -75,6 +76,35 @@ export class LazyValue<T> {
   }
 
   // If this is true, the caller should be able to obtain the LazyValue without
+  // it throwing.
+  public get hasSucceeded(): boolean {
+    return this.value.computedState === "succeeded";
+  }
+}
+
+// Synchronous version of LazyValue.
+export class SyncLazyValue<T> {
+  private callable: () => T;
+  private value:
+    | { computedState: "succeeded"; val: T }
+    | { computedState: "uninitialized" } = {
+    computedState: "uninitialized",
+  };
+
+  constructor(callable: () => T) {
+    this.callable = callable;
+  }
+
+  get(): T {
+    if (this.value.computedState !== "uninitialized") {
+      return this.value.val;
+    }
+    const result = this.callable();
+    this.value = { computedState: "succeeded", val: result };
+    return result;
+  }
+
+  // If this is true, the caller should be able to obtain the SyncLazyValue without
   // it throwing.
   public get hasSucceeded(): boolean {
     return this.value.computedState === "succeeded";

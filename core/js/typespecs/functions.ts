@@ -19,6 +19,13 @@ export const runtimeContextSchema = z.object({
 });
 export type RuntimeContext = z.infer<typeof runtimeContextSchema>;
 
+const strictParam = z
+  .boolean()
+  .nullish()
+  .describe(
+    "If true, throw an error if one of the variables in the prompt is not present in the input",
+  );
+
 export const functionIdSchema = z
   .union([
     z
@@ -148,6 +155,7 @@ export const invokeFunctionNonIdArgsSchema = z.object({
   mode: streamingModeEnum
     .nullish()
     .describe("The mode format of the returned value (defaults to 'auto')"),
+  strict: strictParam,
 });
 
 export const invokeFunctionSchema = functionIdSchema
@@ -236,8 +244,9 @@ export const runEvalSchema = z
     max_concurrency: z
       .number()
       .nullish()
+      .transform((val) => (val === undefined ? 10 : val))
       .describe(
-        "The maximum number of tasks/scorers that will be run concurrently. Defaults to undefined, in which case there is no max concurrency.",
+        "The maximum number of tasks/scorers that will be run concurrently. Defaults to 10. If null is provided, no max concurrency will be used.",
       ),
     base_experiment_name: z
       .string()
@@ -261,6 +270,7 @@ export const runEvalSchema = z
       .describe(
         "Optionally explicitly specify the git metadata for this experiment. This takes precedence over `gitMetadataSettings` if specified.",
       ),
+    strict: strictParam,
   })
   .openapi("RunEval");
 
